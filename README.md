@@ -248,10 +248,31 @@ Checks if a property was set. Returns also true if the value is falsy (null, und
 
 
 
+## Implementing your own Models, Collections or DataLoaders
+
+Please have a look at the following classes which you can extend and inject to the database using the register* method
+of the database class:
+
+- ./src/model/Model.js
+- ./src/collection/Collections.js
+- ./src/loader/DataLoaders.js
 
 
 
+## Debugging and Logging
 
 
+You may us the extended loggin features of logd to print logs. In order to do so, you have to add the following code
+to the main file of your application:
 
+```Javascript
+import logd from 'logd';
+import ConsoleTransport from 'logd-console-transport';
 
+logd.transport(new ConsoleTransport());
+```
+
+When starting the application, you may configure the logger to print logs of different levels via command line parameters
+- `--l` log everything
+- `--log-level=debug+` log all level from debug upwards (you may also use the levels `info`, `warn` and `error`)
+- `--log-module=moduleName` log only logs from a given module (the name is printed in violet)

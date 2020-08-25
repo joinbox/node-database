@@ -4,7 +4,7 @@
   "description": "In-memory database abstraction for consuming relational data sources",
   "main": "index.js",
   "scripts": {
-    "test": "node --experimental-modules ./node_modules/.bin/section ./test/*.js --dev --log-level=debug+ --log-module=Scheduler"
+    "test": "node --experimental-modules ./node_modules/.bin/section ./test/*.js --dev --l"
   },
   "author": "Lina van der Weg",
   "license": "MIT",
