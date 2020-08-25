@@ -1,0 +1,132 @@
+mock:
+    server:
+        port: 34521
+
+dataModel:
+  - name: subscription
+    dataLoader: 
+        type: DataLoader
+        config:
+          hostname: http://l.dns.porn:34521 
+          pathname: /subscription
+    model: 
+        type: Model
+    collection:
+        type: Collection
+        relations: 
+          - type: belongsToMany
+            collection: user
+            ourKey: id
+            theirKey: subscriptionIds
+            name: users
+
+
+  - name: user
+    dataLoader: 
+        type: DataLoader
+        config:
+          hostname: http://l.dns.porn:34521
+          pathname: /user
+    model: 
+        type: Model
+    collection:
+        type: Collection
+        relations:
+          - type: hasMany
+            collection: subscription
+            theirKey: id
+            ourKey: subscriptionIds
+            name: subscriptions
+          - type: hasMany
+            collection: portfolio
+            theirKey: id
+            ourKey: portfolioIds
+            name: portfolios
+          - type: hasMany
+            collection: memberStatus
+            theirKey: id
+            ourKey: memberStatusIds
+            name: memberStatus
+          - type: hasMany
+            collection: committee
+            theirKey: id
+            ourKey: committeeIds
+            name: committees
+
+
+  - name: committee
+    dataLoader: 
+        type: DataLoader
+        config:
+          hostname: http://l.dns.porn:34521
+          pathname: /committee
+    model: 
+        type: Model
+    collection:
+        type: Collection
+        relations: 
+          - type: belongsToMany
+            collection: user
+            ourKey: id
+            theirKey: committeeIds
+            name: committees
+
+
+  - name: memberStatus
+    dataLoader: 
+        type: DataLoader
+        config:
+          hostname: http://l.dns.porn:34521
+          pathname: /memberStatus
+    model: 
+        type: Model
+    collection:
+        type: Collection
+        relations: 
+          - type: belongsToMany
+            collection: user
+            ourKey: id
+            theirKey: memberStatusIds
+            name: memberStatus
+
+
+  - name: portfolio
+    dataLoader: 
+        type: DataLoader
+        config:
+          hostname: http://l.dns.porn:34521
+          pathname: /portfolio
+    model: 
+        type: Model
+    collection:
+        type: Collection
+        relations: 
+          - type: belongsToMany
+            collection: user
+            ourKey: id
+            theirKey: portfolioIds
+            name: portfolios
+
+
+  - name: mailConfig
+    dataLoader: 
+        type: DataLoader
+        config:
+          hostname: http://l.dns.porn:34521
+          pathname: /mailConfig
+    model: 
+        type: Model
+    collection:
+        type: Collection
+
+
+  - name: article
+    dataLoader: 
+        type: DataLoader
+        config:
+          hostname: http://l.dns.porn:34521
+          pathname: /article
+    model: 
+        type: Model
+    collection:
+        type: Collection
