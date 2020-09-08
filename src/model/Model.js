@@ -9,9 +9,28 @@ export default class Model {
 
     constructor({
         name,
+        fields,
     }) {
-        this.name = name;
+        this.fields = fields;
+        this._name = name;
         this.data = new Map();
+
+        this.createAccesors(fields);
+    }
+
+
+
+    createAccesors(fields) {
+        for (let { targetName } of fields) {
+            if (this[targetName] !== undefined) {
+                throw new Error(`${this.getLogPrefix()} Cannot create accessor for property ${targetName}: property has already a value on this this model!`);
+            }
+
+            Object.defineProperty(this, targetName, {
+                get: () => this.get(targetName),
+                set: (value) => this.set(targetName, value),
+            });
+        }
     }
 
 
@@ -33,6 +52,11 @@ export default class Model {
     }
 
 
+    delete(property) {
+        this.data.delete(property);
+    }
+
+
     get(property) {
         log.debug(`${this.getLogPrefix()} returning property ${property} with the value ${this.data.get(property)}`);
         return this.data.get(property);
@@ -46,11 +70,16 @@ export default class Model {
 
 
     getLogPrefix() {
-        return `[${this.name}]${this.data.has('id') ? `[${this.data.get('id')}]` : ''}`;
+        return `[${this._name}]${this.data.has('id') ? `[${this.data.get('id')}]` : ''}`;
     }
 
 
     createRelation(name) {
         this.data.set(name, []);
+    }
+
+
+    toJSON() {
+        return Object.fromEntries(this.data);
     }
 }

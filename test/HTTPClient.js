@@ -1,12 +1,12 @@
 import section from 'section-tests';
-import APIClient from '../src/APIClient.js';
+import HTTPClient from '../src/HTTPClient.js';
 import express from 'express';
 import assert from 'assert';
 
 
 section('API Client', (section) => {
     section.test('Setting up && Shutting down', async() => {
-        const client = new APIClient({
+        const client = new HTTPClient({
             hostname: 'http://l.dns.porn',
             pathname: '/user',
             name: 'user',
@@ -16,10 +16,11 @@ section('API Client', (section) => {
 
 
     section.test('Send a GET request', async() => {
-        const client = new APIClient({
+        const client = new HTTPClient({
             hostname: 'http://l.dns.porn:9282',
             pathname: '/user',
             name: 'user',
+            accept: 'application/json'
         });
 
         const server = express();
@@ -32,9 +33,7 @@ section('API Client', (section) => {
         });
 
         const serverInstance = server.listen(9282);
-
-
-        const data = await client.get();
+        const data = await client.request();
 
         assert.equal(data[0].id, 10);
 

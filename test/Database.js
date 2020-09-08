@@ -2,7 +2,7 @@ import section from 'section-tests';
 import assert from 'assert';
 
 import MockServer from '../mocks/Server.js';
-import Database, { Model, Collection, DataLoader } from '../index.js';
+import Database, { Model, Collection, RESTDataLoader } from '../index.js';
 
 
 section('Database', (section) => {
@@ -12,7 +12,7 @@ section('Database', (section) => {
             dataModelDefintion: [{
                 name: 'subscription',
                 dataLoader: {
-                    type: 'DataLoader',
+                    type: 'RESTDataLoader',
                     config: {
                         hostname: 'https://l.dns.porn:2341',
                         pathname: '/subscription',
@@ -27,7 +27,7 @@ section('Database', (section) => {
             }]
         });
 
-        database.registerDataLoader('DataLoader', DataLoader);
+        database.registerDataLoader('RESTDataLoader', RESTDataLoader);
         database.registerModel('Model', Model);
         database.registerCollection('Collection', Collection);
 
@@ -43,7 +43,7 @@ section('Database', (section) => {
             dataModelDefintion: [{
                 name: 'subscription',
                 dataLoader: {
-                    type: 'DataLoader',
+                    type: 'RESTDataLoader',
                     config: {
                         hostname: 'http://l.dns.porn:12434',
                         pathname: '/subscription',
@@ -58,7 +58,7 @@ section('Database', (section) => {
             }]
         });
 
-        database.registerDataLoader('DataLoader', DataLoader);
+        database.registerDataLoader('RESTDataLoader', RESTDataLoader);
         database.registerModel('Model', Model);
         database.registerCollection('Collection', Collection);
 
@@ -84,7 +84,7 @@ section('Database', (section) => {
             dataModelDefintion: [{
                 name: 'subscription',
                 dataLoader: {
-                    type: 'DataLoader',
+                    type: 'RESTDataLoader',
                     config: {
                         hostname: 'http://l.dns.porn:5326',
                         pathname: '/subscription',
@@ -106,7 +106,7 @@ section('Database', (section) => {
             }, {
                 name: 'user',
                 dataLoader: {
-                    type: 'DataLoader',
+                    type: 'RESTDataLoader',
                     config: {
                         hostname: 'http://l.dns.porn:5326',
                         pathname: '/user',
@@ -128,7 +128,7 @@ section('Database', (section) => {
             }]
         });
 
-        database.registerDataLoader('DataLoader', DataLoader);
+        database.registerDataLoader('RESTDataLoader', RESTDataLoader);
         database.registerModel('Model', Model);
         database.registerCollection('Collection', Collection);
 

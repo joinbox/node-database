@@ -4,12 +4,13 @@
   "description": "In-memory database abstraction for consuming relational data sources",
   "main": "index.js",
   "scripts": {
-    "test": "node --experimental-modules ./node_modules/.bin/section ./test/*.js --dev --l"
+    "test": "node --experimental-modules ./node_modules/.bin/section ./test/*.js --dev"
   },
   "author": "Lina van der Weg",
   "license": "MIT",
   "type": "module",
   "dependencies": {
+    "fast-xml-parser": "^3.17.4",
     "logd": "^2.3.1",
     "logd-console-transport": "^1.1.0",
     "superagent": "^5.3.1"

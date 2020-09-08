@@ -27,14 +27,17 @@ export default class Database {
 
 
     registerModel(name, ModelConstructor) {
-        log.debug(`[${this.name}] registering omdel constructor ${name}`);
+        log.debug(`[${this.name}] registering model constructor ${name}`);
         this.modelContructors.set(name, ModelConstructor);
     }
 
 
-    registerDataLoader(name, DataLoaderConstructor) {
-        log.debug(`[${this.name}] registering dataLoader constructor ${name}`);
-        this.dataLoaderConstructors.set(name, DataLoaderConstructor);
+    registerDataLoader(name, DataLoaderConstructor, dataLoaderOptions) {
+        log.debug(`[${this.name}] registering DataLoader constructor ${name}`);
+        this.dataLoaderConstructors.set(name, {
+            DataLoaderConstructor,
+            dataLoaderOptions,
+        });
     }
 
 
@@ -92,9 +95,10 @@ export default class Database {
             log.debug(`[${this.name}][${definition.name}] using collection ${definition.collection.type}`);
 
 
-            const DataLoaderConstructor = this.dataLoaderConstructors.get(definition.dataLoader.type);
+            const { DataLoaderConstructor, dataLoaderOptions } = this.dataLoaderConstructors.get(definition.dataLoader.type);
             const dataLoader = new DataLoaderConstructor({
                 ...definition.dataLoader.config,
+                dataLoaderOptions,
                 name: definition.name,
             });
 
@@ -105,8 +109,12 @@ export default class Database {
                 dataLoader,
                 database: this,
                 relations: definition.collection.relations,
+                indices: definition.collection.indices,
+                fields: definition.collection.fields,
+                filters: definition.collection.filters,
             });
 
+            await collection.initialize();
 
             this.collections.set(collection.getName(), collection);
         }
@@ -124,6 +132,7 @@ export default class Database {
         }
 
         log.info(`[${this.name}] resolving relations ...`);
+        const start = Date.now();
 
         // resolve relations
         for (const collection of this.collections.values()) {
@@ -131,6 +140,7 @@ export default class Database {
             await collection.resolveRelations();
         }
 
+        log.info(`[${this.name}] relations resolved after ${(Date.now() - start)} milliseconds`);
         log.info(`[${this.name}] database was initalized`);
     }
 }

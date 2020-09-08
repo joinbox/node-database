@@ -34,8 +34,8 @@ const dataModelDefintion = [{
     name: 'user',
 
     // define which data loader to use for the data of this entity, pass it's configuration
-    dataLoader: {
-        type: 'DataLoader',
+    RESTDataLoader: {
+        type: 'RESTDataLoader',
         config: {
             hostname: 'https://l.dns.porn:2341',
             pathname: '/user',
@@ -71,8 +71,8 @@ const dataModelDefintion = [{
     },
 }, {
     name: 'companyIds',
-    dataLoader: {
-        type: 'DataLoader',
+    RESTDataLoader: {
+        type: 'RESTDataLoader',
         config: {
             hostname: 'https://l.dns.porn:2341',
             pathname: '/company',
@@ -117,9 +117,9 @@ const database = new Database({
 
 
 
-### database.registerModel(name, Constructor), database.registerDataLoader(name, Constructor), database.registerCollection(name, Constructor) methods
+### database.registerModel(name, Constructor), database.registerRESTDataLoader(name, Constructor), database.registerCollection(name, Constructor) methods
 
-After instantiating the database, you may inject your custom DataLoader, Model and Collection implementations. We're 
+After instantiating the database, you may inject your custom RESTDataLoader, Model and Collection implementations. We're 
 going to use the built in ones for now.
 
 ```Javascript
@@ -127,12 +127,12 @@ going to use the built in ones for now.
 import {
     Collection,
     Model,
-    DataLoader,
+    RESTDataLoader,
 } from '@joinbox/node-database';
 
 // the first argument of the register functions is the name of the component as it's defined in the data model 
 // definition
-database.registerDataLoader('DataLoader', DataLoader);
+database.registerRESTDataLoader('RESTDataLoader', RESTDataLoader);
 database.registerModel('Model', Model);
 database.registerCollection('Collection', Collection);
 ```
@@ -248,14 +248,14 @@ Checks if a property was set. Returns also true if the value is falsy (null, und
 
 
 
-## Implementing your own Models, Collections or DataLoaders
+## Implementing your own Models, Collections or RESTDataLoaders
 
 Please have a look at the following classes which you can extend and inject to the database using the register* method
 of the database class:
 
 - ./src/model/Model.js
 - ./src/collection/Collections.js
-- ./src/loader/DataLoaders.js
+- ./src/loader/RESTDataLoaders.js
 
 
 

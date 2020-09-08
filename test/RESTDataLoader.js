@@ -1,12 +1,12 @@
 import section from 'section-tests';
-import { DataLoader } from '../index.js';
+import { RESTDataLoader } from '../index.js';
 import express from 'express';
 import assert from 'assert';
 
 
-section('DataLoader', (section) => {
+section('RESTDataLoader', (section) => {
     section.test('Setting up && Shutting down', async() => {
-        const client = new DataLoader({
+        const client = new RESTDataLoader({
             hostname: 'http://l.dns.porn',
             pathname: '/user',
             name: 'user',
@@ -16,7 +16,7 @@ section('DataLoader', (section) => {
 
 
     section.test('Load data', async() => {
-        const client = new DataLoader({
+        const client = new RESTDataLoader({
             hostname: 'http://l.dns.porn:9282',
             pathname: '/user',
             name: 'user',

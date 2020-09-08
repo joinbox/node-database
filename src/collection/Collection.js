@@ -1,5 +1,6 @@
 import logd from 'logd';
 import path from 'path';
+import VMModule from '../VMModule.js';
 
 const log = logd.module(path.basename(new URL(import.meta.url).pathname, '.js'));
 
@@ -12,25 +13,68 @@ export default class Collection {
         dataLoader,
         database,
         relations = [],
+        indices = [],
+        fields = null,
+        filters,
     }) {
+        this.indicesConfiguration = indices;
         this.database = database;
         this.dataLoader = dataLoader;
         this.name = name;
         this.ModelConstructor = ModelConstructor;
+        this.fields = fields;
+        this.filters = filters;
 
+        this.relationDefinitions = relations;
+        this.indiceDefinitions = indices;
         this.relations = new Set();
-        this.models = [];
+            
+        // the targetname may not be defined, set it
+        for (const field of this.fields) {
+            if (!field.sourceName) {
+                field.sourceName = field.name || field.targetName;
+            }
 
+            if (!field.targetName) {
+                field.targetName = field.name;
+            }
+        }
+
+        this.reset();
 
         for (const relation of relations) {
             this.registerRelation(relation);
         }
+
+        this.isInitialized = false;
     }
 
 
 
+    async setupFieldTranslators() {
+        log.info(`${this.getLogPrefix()} setting up field translators`);
+        if (this.fields) {
+            this.translators = new Set();
+
+            for (const { sourceName, targetName, translator } of this.fields) {
+                let translatorInstance;
+                log.debug(`${this.getLogPrefix()} translating ${sourceName} into ${targetName}${translator ? 'using a translator function' : ''}`);
+
+                if (translator) {
+                    translatorInstance = new VMModule({ sourceCode: translator });
+                    await translatorInstance.load();
+                    await translatorInstance.execute();
+                } 
+
+                this.translators.add({ sourceName, targetName, translatorInstance });
+            }
+        }
+    }
+
+
     reset() {
         this.models = [];
+        this.indices = new Map(this.indiceDefinitions.map(name => ([name, new Map()])));
     }
 
 
@@ -40,7 +84,39 @@ export default class Collection {
     }
 
 
+
+
+    filter(key, value, inPlace = false) {
+        const models = this.findModels(key, value);
+
+        if (inPlace) {
+            this.reset();
+            this.setModels(models);
+            return this;
+        } else {
+            const collection =  new Collection({
+                name: this.name,
+                ModelConstructor: this.ModelConstructor,
+                dataLoader: this.dataLoader,
+                database: this.database,
+                relations: this.relationDefinitions,
+                indices: this.indiceDefinitions,
+                fields: this.fields,
+            });
+
+            collection.setModels(models);
+            return collection;
+        }
+    }
+
+
+
     resolveRelations() {
+        if (!this.isInitialized) {
+            throw new Error(`[${this.getName()}] canont resolveRelations(): collection was not initialized!`);
+        }
+
+        const start = Date.now();
         log.info(`${this.getLogPrefix()} resolving relations`);
 
         for (const relation of this.relations.values()) {
@@ -50,11 +126,35 @@ export default class Collection {
                 this.resolveHasManyRelation(relation);
             } else if (relation.type === 'belongsToMany') {
                 this.resolveBelongsToManyRelation(relation);
+            } else if (relation.type === 'hasOne' ) {
+                this.resolveHasOneRelation(relation);
             } else {
                 throw new Error(`[${this.getName()}] unknown relation type ${relation.type}!`);
             }
         }
+
+        log.info(`${this.getLogPrefix()} relations resolved after ${(Date.now() - start)} milliseconds`);
     }
+
+
+
+
+
+
+    resolveHasOneRelation(relation) {
+        if (!this.database.has(relation.collection)) {
+            throw new Error(`[${this.getName()}] Cannot reolve ${relation.type} relation to ${relation.collection}, collection does not exist!`);
+        }
+
+        const collection = this.database.get(relation.collection);
+        for (const model of this.getModels()) {
+            if (model.has(relation.ourKey) && model.get(relation.ourKey) !== undefined && model.get(relation.ourKey) !== null) {
+                model.set(relation.name, collection.findModel(relation.theirKey, model.get(relation.ourKey)));
+            }
+        }
+    }
+
+
 
 
 
@@ -68,7 +168,7 @@ export default class Collection {
         for (const model of this.getModels()) {
             model.createRelation(relation.name);
 
-            if (model.has(relation.ourKey)) {
+            if (model.has(relation.ourKey) && model.get(relation.ourKey) !== undefined && model.get(relation.ourKey) !== null) {
                 model.get(relation.name).push(...collection.findModels(relation.theirKey, model.get(relation.ourKey)));
             }
         }
@@ -94,6 +194,10 @@ export default class Collection {
                 }
 
                 for (const id of model.get(relation.ourKey)) {
+                    if (id === null || id === undefined) {
+                        continue;
+                    }
+
                     const remoteModel = collection.findModel(relation.theirKey, id);
 
                     if (!remoteModel) {
@@ -130,38 +234,61 @@ export default class Collection {
 
     findModel(key, value) {
         log.debug(`${this.getLogPrefix()} find model by ${key} ${value}`);
-        for (const model of this.models) {
-            const localValue = model.get(key);
-            if (localValue === value || Array.isArray(localValue) && localValue.includes(value)) {
-                log.debug(`${this.getLogPrefix(model)} model by ${key} ${value} found!`);
-                return model;
-            }
+        const models = this.findModels(key, value, 1);
+        
+        if (models.length) {
+            log.debug(`${this.getLogPrefix()} model by ${key} ${value} found!`);
+            return models[0];
+        } else {
+            log.debug(`${this.getLogPrefix()} model by ${key} ${value} not found!`);
+            return null;
         }
-
-        log.debug(`${this.getLogPrefix()} model by ${key} ${value} not found!`);
-        return null;
     }
 
-    findModels(key, value) {
+    findModels(key, value, limit) {
         log.debug(`${this.getLogPrefix()} find models by ${key} ${value}`);
-        const models = [];
+        let models;
 
-        for (const model of this.models) {
-            const localValue = model.get(key);
-            if (localValue === value || Array.isArray(localValue) && localValue.includes(value)) {
-                log.debug(`${this.getLogPrefix(model)} model by ${key} ${value} found!`);
-                models.push(model);
+        if (this.indices.has(key)) {
+            log.debug(`${this.getLogPrefix()} ${key} has an index, returning models from there!`);
+            
+            const indexMap = this.indices.get(key);
+            if (indexMap.has(value)) {
+                models = indexMap.get(value);
+            } else {
+                models = [];
             }
         }
 
-        log.debug(`${this.getLogPrefix()} ${models.length} models found by ${key} ${value}`);
-        return models;
+
+        if (!models) {
+            models = [];
+
+            for (const model of this.models) {
+                const localValue = model.get(key);
+                if (localValue === value || Array.isArray(localValue) && localValue.includes(value)) {
+                    log.debug(`${this.getLogPrefix(model)} model by ${key} ${value} found!`);
+                    models.push(model);
+                }
+            }
+        }
+
+        const sortedModels = models.sort((a, b) => a[key] > b[key] ? -1 : 1);
+
+        if (limit) {
+            log.debug(`${this.getLogPrefix()} ${models.length} models found by ${key} ${value} and limited by ${limit}`);
+            return sortedModels.slice(0, limit);
+        } else {
+            log.debug(`${this.getLogPrefix()} ${models.length} models found by ${key} ${value}`);
+            return sortedModels;
+        }
     }
 
     createModel(data) {
         log.debug(`${this.getLogPrefix()} create model`);
         const model = new this.ModelConstructor({
             name: this.getName(),
+            fields: this.fields,
         });
 
         model.setData(data);
@@ -176,6 +303,20 @@ export default class Collection {
     addModel(model) {
         log.debug(`${this.getLogPrefix(model)} add model`)
         this.models.push(model);
+
+        for (const index of this.indicesConfiguration) {
+            const values = model.has(index) ? (Array.isArray(model.get(index)) ? model.get(index) : [ model.get(index) ]) : [ null ];
+            const indexMap = this.indices.get(index);
+
+            for (const value of values) {
+                if (!indexMap.has(value)) {
+                    indexMap.set(value, []);
+                }
+
+                indexMap.get(value).push(model);
+            }
+        }
+
         return model;
     }
 
@@ -200,7 +341,10 @@ export default class Collection {
 
     setModels(models) {
         log.debug(`${this.getLogPrefix()} settings models`)
-        this.models = models;
+
+        for (const model of models) {
+            this.addModel(model);
+        }
     }
 
     getLogPrefix(model) {
@@ -213,10 +357,98 @@ export default class Collection {
     }
 
 
+
+    async initialize() {
+        this.isInitialized = true;
+        await this.setupFieldTranslators();
+    }
+
+
     async load() {
-        const data = await this.dataLoader.load();
-        for (const item of data) {
-            this.createAndAddModel(item);
+        if (!this.isInitialized) {
+            throw new Error(`[${this.getName()}] canont load(): collecction was not initialozed!`);
         }
+
+        const data = await this.dataLoader.load();
+        let filteredItems = 0;
+
+        for (let item of data) {
+            item = this.translateAndMapProperties(item);
+
+            if (this.satisfiesFilters(item)) {
+                this.createAndAddModel(item);
+            } else {
+                filteredItems++;
+            }
+        }
+
+        log.info(`${this.getLogPrefix()} loaded ${data.length} records removed ${filteredItems} records due to filtering...`)
+    }
+
+
+
+    satisfiesFilters(data) {
+        if (!this.filters) {
+            return true;
+        }
+
+        for(const { propertyName, comparator, value } of this.filters) {
+            switch (comparator) {
+                case 'equals':
+                    if (data[propertyName] !== value)  {
+                        log.debug(`${this.getLogPrefix()} filtered item: ${propertyName} with the value ${data[propertyName]} does not suffice filter ${comparator} with the value ${value}`)
+                        return false;
+                    }
+                    return true;
+
+                case 'equalsSome':
+                    if (!Array.isArray(value)) {
+                        throw new Error(`${this.getLogPrefix()} expected an array of values for the filter of the propertyName ${propertyName}!`);
+                    } else {
+                        if (value.some(itemValue => data[propertyName] === itemValue)) {
+                            return true;
+                        } else {
+                            log.debug(`${this.getLogPrefix()} filtered item: ${propertyName} with the value ${data[propertyName]} does not suffice filter ${comparator} with the values ${value.join(', ')}`)
+                            return false;
+                        }
+                    }
+
+                default: 
+                    throw new Error(`[${this.getName()}] cannot filter data, the comparator ${comparator} is not known!`);
+            }
+        }
+
+
+        return true;
+    }
+
+
+
+    translateAndMapProperties(inputData) {
+        if (!this.translators) {
+            return inputData;
+        }
+
+        const outputData = {};
+
+        for (let { sourceName, targetName, translatorInstance } of this.translators.values()) {
+            if (inputData[sourceName] !== undefined) {
+                if (translatorInstance) {
+                    outputData[targetName] = translatorInstance.translate(inputData[sourceName], inputData);
+                } else {
+                    outputData[targetName] = inputData[sourceName];
+                }
+            } else {
+                outputData[targetName] = null;
+            }
+        }
+
+        return outputData;
+    }
+
+
+
+    toJSON() {
+        return this.getModels().map(model => model.toJSON());
     }
 }
