@@ -54,7 +54,7 @@ export default class Database {
 
     get(collectionName) {
         if (!this.has(collectionName)) {
-            throw new Error(`Cannot reutrn collection ${collectionName}, colelction does not exist!`);
+            throw new Error(`Cannot reutrn collection ${collectionName}, collection does not exist!`);
         }
 
         return this.collections.get(collectionName);
@@ -112,6 +112,8 @@ export default class Database {
                 indices: definition.collection.indices,
                 fields: definition.collection.fields,
                 filters: definition.collection.filters,
+                strictValidation: definition.strictValidation,
+                uniqueKey: definition.collection.uniqueKey,
             });
 
             await collection.initialize();

@@ -16,7 +16,10 @@ export default class Collection {
         indices = [],
         fields = null,
         filters,
+        strictValidation = true,
+        uniqueKey,
     }) {
+        this.uniqueKey = uniqueKey;
         this.indicesConfiguration = indices;
         this.database = database;
         this.dataLoader = dataLoader;
@@ -24,6 +27,7 @@ export default class Collection {
         this.ModelConstructor = ModelConstructor;
         this.fields = fields;
         this.filters = filters;
+        this.strictValidation = strictValidation;
 
         this.relationDefinitions = relations;
         this.indiceDefinitions = indices;
@@ -58,7 +62,7 @@ export default class Collection {
 
             for (const { sourceName, targetName, translator } of this.fields) {
                 let translatorInstance;
-                log.debug(`${this.getLogPrefix()} translating ${sourceName} into ${targetName}${translator ? 'using a translator function' : ''}`);
+                log.debug(`${this.getLogPrefix()} translating ${sourceName} into ${targetName}${translator ? 'using a translator function' : ' without a translator function'}`);
 
                 if (translator) {
                     translatorInstance = new VMModule({ sourceCode: translator });
@@ -74,6 +78,7 @@ export default class Collection {
 
     reset() {
         this.models = [];
+        this.uniqueKeyIndex = new Set();
         this.indices = new Map(this.indiceDefinitions.map(name => ([name, new Map()])));
     }
 
@@ -149,11 +154,21 @@ export default class Collection {
         const collection = this.database.get(relation.collection);
         for (const model of this.getModels()) {
             if (model.has(relation.ourKey) && model.get(relation.ourKey) !== undefined && model.get(relation.ourKey) !== null) {
-                model.set(relation.name, collection.findModel(relation.theirKey, model.get(relation.ourKey)));
+                const id = model.get(relation.ourKey);
+                const remoteModel = collection.findModel(relation.theirKey, id);
+
+                if (remoteModel === null) {
+                    if (this.strictValidation) {
+                        throw new Error(`[${this.getName()}] Failed to resolve relation ${relation.collection}: remote model with key ${relation.theirKey} wit the value ${id} not found!`);
+                    } else {
+                        log.warn(`[${this.getName()}] Failed to resolve relation ${relation.collection}: remote model with key ${relation.theirKey} wit the value ${id} not found!`);
+                    }
+                } else {
+                    model.set(relation.name, remoteModel);
+                }
             }
         }
     }
-
 
 
 
@@ -200,16 +215,20 @@ export default class Collection {
 
                     const remoteModel = collection.findModel(relation.theirKey, id);
 
-                    if (!remoteModel) {
-                        throw new Error(`[${this.getName()}] Failed to resolve relation ${relation.collection}: remote model with key ${relation.theirKey} wit the value ${id} not found!`);
+                    if (remoteModel === null) {
+                        if (this.strictValidation) {
+                            throw new Error(`[${this.getName()}] Failed to resolve relation ${relation.collection}: remote model with key ${relation.theirKey} wit the value ${id} not found!`);
+                        } else {
+                            log.warn(`[${this.getName()}] Failed to resolve relation ${relation.collection}: remote model with key ${relation.theirKey} wit the value ${id} not found!`);
+                        }
+                    } else {
+                        model.get(relation.name).push(remoteModel);
                     }
-
-                    model.get(relation.name).push(remoteModel);
                 }
             }
         }
     }
-    
+
 
     registerRelation({
         type,
@@ -301,7 +320,19 @@ export default class Collection {
     }
 
     addModel(model) {
-        log.debug(`${this.getLogPrefix(model)} add model`)
+        log.debug(`${this.getLogPrefix(model)} add model`);
+
+        if (this.uniqueKey) {
+            const value = model.get(this.uniqueKey);
+
+            if (this.uniqueKeyIndex.has(value)) {
+                return null;
+            } else {
+                this.uniqueKeyIndex.add(value);
+            }
+        }
+
+
         this.models.push(model);
 
         for (const index of this.indicesConfiguration) {
@@ -432,14 +463,14 @@ export default class Collection {
         const outputData = {};
 
         for (let { sourceName, targetName, translatorInstance } of this.translators.values()) {
-            if (inputData[sourceName] !== undefined) {
-                if (translatorInstance) {
-                    outputData[targetName] = translatorInstance.translate(inputData[sourceName], inputData);
-                } else {
-                    outputData[targetName] = inputData[sourceName];
-                }
+            if (translatorInstance) {
+                outputData[targetName] = translatorInstance.translate(inputData[sourceName], inputData);
             } else {
-                outputData[targetName] = null;
+                if (inputData[sourceName] !== undefined) {
+                    outputData[targetName] = inputData[sourceName];
+                } else {
+                    outputData[targetName] = null;
+                }
             }
         }
 

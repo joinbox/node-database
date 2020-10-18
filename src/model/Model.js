@@ -82,4 +82,15 @@ export default class Model {
     toJSON() {
         return Object.fromEntries(this.data);
     }
+
+
+    toObject(...fields) {
+        const obj = {};
+
+        for (const field of fields) {
+            obj[field] = this.get(field);
+        }
+
+        return obj;
+    }
 }

@@ -76,7 +76,7 @@ export default class HTTPClient {
         const start = Date.now();
         const url = this.hostname + (pathname || this.pathname);
 
-        log.debug(`[${id}] Sending ${this.method.toUpperCase()} request to ${this.hostname}${this.pathname}; query = ${JSON.stringify(query)}`);
+        log.debug(`[${id}] Sending ${this.method.toUpperCase()} request to ${url}; query = ${JSON.stringify(query)}`);
 
         if (this.basicAuthValue) {
             headers.set('Authorization', this.basicAuthValue);
@@ -97,7 +97,7 @@ export default class HTTPClient {
             })
             .send(body);
 
-        log.debug(`[${id}][${Date.now()-start}msec] Got a response for the ${this.method.toUpperCase()} request to ${this.hostname}${this.pathname}`);
+        log.debug(`[${id}][${Date.now()-start} msec] Got a response for the ${this.method.toUpperCase()} request to ${this.hostname}${this.pathname}`);
 
         if (response.body && response.body.length !== undefined) {
             log.info(`[${id}] reponse for request to ${this.hostname}${this.pathname} contains ${response.body.length} records`);
@@ -105,7 +105,7 @@ export default class HTTPClient {
 
             return response.body;
         } else if (response.buffered) {
-            if (this.captureData) {
+            if (this.captureData) { 
                 this.rawData.push(response.text);
             }
             const parsedData = this.parseBody(response.text);
