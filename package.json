@@ -1,6 +1,6 @@
 {
   "name": "@joinbox/node-database",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "In-memory database abstraction for consuming relational data sources",
   "main": "index.js",
   "scripts": {
