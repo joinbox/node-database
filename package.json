@@ -13,7 +13,7 @@
     "fast-xml-parser": "^3.17.4",
     "logd": "^2.3.1",
     "logd-console-transport": "^1.1.0",
-    "superagent": "^5.3.1"
+    "superagent": "^6.1.0"
   },
   "devDependencies": {
     "@rainbow-industries/rainbow-config": "^1.0.2",

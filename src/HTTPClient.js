@@ -28,7 +28,7 @@ export default class HTTPClient {
         hostname,
         pathname,
         name,
-        accept,
+        accept = '*/*',
         expectStatus = 200,
         method = 'get',
         captureData = false,
@@ -71,6 +71,7 @@ export default class HTTPClient {
         body = null,
         headers = new Map(),
         pathname,
+        timeout = 300,
     } = {}) {
         const id = Math.round(Math.random()*100000000);
         const start = Date.now();
@@ -87,6 +88,7 @@ export default class HTTPClient {
         const response = await superagent[this.method](url)
             .query(query)
             .buffer()
+            .timeout({ deadline: timeout * 1000, response: timeout * 1000 })
             .set(Object.fromEntries(headers.entries()))
             .ok((response) => {
                 if (!this.expectedStatus.includes(response.status)) {
