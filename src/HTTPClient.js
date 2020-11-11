@@ -114,4 +114,10 @@ export default class HTTPClient {
             return parsedData;
         }
     }
+
+
+
+    parseBody(input) {
+        return input;
+    }
 }
