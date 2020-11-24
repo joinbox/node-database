@@ -8,10 +8,10 @@ export default class Database {
 
 
     constructor({
-        dataModelDefintion,
+        dataModelDefinition,
         name,
     }) {
-        this.dataModelDefintion = dataModelDefintion;
+        this.dataModelDefinition = dataModelDefinition;
         this.name = name;
         this.collections = new Map();
         this.modelContructors = new Map();
@@ -75,7 +75,7 @@ export default class Database {
     async setup() {
         log.debug(`[${this.name}] setting up database`);
 
-        for (const definition of this.dataModelDefintion) {
+        for (const definition of this.dataModelDefinition) {
             log.info(`[${this.name}] setting up collection ${definition.name} ...`);
 
 
