@@ -69,6 +69,35 @@ export default class Model {
     }
 
 
+
+    contains(property, valueMap) {
+        if (this.hasValue(property)) {
+            for (const value of this.get(property)) {
+                if (valueMap.has(value)) {
+                    return true;
+                }
+            }
+        }
+
+        return false;
+    }
+
+
+    hasValue(property) {
+        if (this.has(property)) {
+            const value = this.get(property);
+            
+            if (Array.isArray(value)) {
+                return !!value.filter(item => item !== undefined && item !== null).length;
+            } else {
+                return value !== undefined && value !== null;
+            }
+        }
+
+        return false;
+    }
+
+
     getLogPrefix() {
         return `[${this._name}]${this.data.has('id') ? `[${this.data.get('id')}]` : ''}`;
     }
