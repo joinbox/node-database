@@ -32,7 +32,9 @@ export default class HTTPClient {
         expectStatus = 200,
         method = 'get',
         captureData = false,
+        retries = 10,
     }) {
+        this.retries = 10;
         this.pathname = pathname;
         this.hostname = hostname;
         this.name = name;
@@ -72,6 +74,7 @@ export default class HTTPClient {
         headers = new Map(),
         pathname,
         timeout = 300,
+        attempt = 1,
     } = {}) {
         const id = Math.round(Math.random()*100000000);
         const start = Date.now();
@@ -85,33 +88,48 @@ export default class HTTPClient {
 
         headers.set('Accept', this.accept);
 
-        const response = await superagent[this.method](url)
-            .query(query)
-            .buffer()
-            .timeout({ deadline: timeout * 1000, response: timeout * 1000 })
-            .set(Object.fromEntries(headers.entries()))
-            .ok((response) => {
-                if (!this.expectedStatus.includes(response.status)) {
-                    throw new Error(`${this.method.toUpperCase()} Request to ${url} failed with the status ${response.status}, expected ${this.expectedStatus.join(', ')}!`);
-                } else {
-                    return true;
+        try {
+            const response = await superagent[this.method](url)
+                .query(query)
+                .buffer()
+                .timeout({ deadline: timeout * 1000, response: timeout * 1000 })
+                .set(Object.fromEntries(headers.entries()))
+                .ok((response) => {
+                    if (!this.expectedStatus.includes(response.status)) {
+                        throw new Error(`${this.method.toUpperCase()} Request to ${url} failed with the status ${response.status}, expected ${this.expectedStatus.join(', ')}!`);
+                    } else {
+                        return true;
+                    }
+                })
+                .send(body);
+
+            log.debug(`[${id}][${Date.now()-start} msec] Got a response for the ${this.method.toUpperCase()} request to ${this.hostname}${this.pathname}`);
+
+            if (response.body && response.body.length !== undefined) {
+                log.info(`[${id}] reponse for request to ${this.hostname}${this.pathname} contains ${response.body.length} records`);
+                log.debug(`[${id}] data for request to ${this.hostname}${this.pathname}: ${JSON.stringify(response.body).substr(0, 500)}`);
+
+                return response.body;
+            } else if (response.buffered) {
+                if (this.captureData) { 
+                    this.rawData.push(response.text);
                 }
-            })
-            .send(body);
-
-        log.debug(`[${id}][${Date.now()-start} msec] Got a response for the ${this.method.toUpperCase()} request to ${this.hostname}${this.pathname}`);
-
-        if (response.body && response.body.length !== undefined) {
-            log.info(`[${id}] reponse for request to ${this.hostname}${this.pathname} contains ${response.body.length} records`);
-            log.debug(`[${id}] data for request to ${this.hostname}${this.pathname}: ${JSON.stringify(response.body).substr(0, 500)}`);
-
-            return response.body;
-        } else if (response.buffered) {
-            if (this.captureData) { 
-                this.rawData.push(response.text);
+                const parsedData = this.parseBody(response.text);
+                return parsedData;
             }
-            const parsedData = this.parseBody(response.text);
-            return parsedData;
+        } catch (err) {
+            if (this.method.toLowerCase() === 'get' && attempt < this.retries) {
+                return await this.request({
+                    query,
+                    body,
+                    headers,
+                    pathname,
+                    timeout,
+                    attempt: attempt + 1,
+                });
+            } else {
+                throw err;
+            }
         }
     }
 
