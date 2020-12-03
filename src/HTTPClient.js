@@ -88,7 +88,6 @@ export default class HTTPClient {
 
         headers.set('Accept', this.accept);
 
-        try {
             const response = await superagent[this.method](url)
                 .query(query)
                 .buffer()
@@ -117,20 +116,6 @@ export default class HTTPClient {
                 const parsedData = this.parseBody(response.text);
                 return parsedData;
             }
-        } catch (err) {
-            if (this.method.toLowerCase() === 'get' && attempt < this.retries) {
-                return await this.request({
-                    query,
-                    body,
-                    headers,
-                    pathname,
-                    timeout,
-                    attempt: attempt + 1,
-                });
-            } else {
-                throw err;
-            }
-        }
     }
 
 
