@@ -2,6 +2,7 @@ import superagent from 'superagent';
 import logd from 'logd';
 import path from 'path';
 
+
 const log = logd.module(path.basename(new URL(import.meta.url).pathname, '.js'));
 
 
@@ -33,7 +34,11 @@ export default class HTTPClient {
         method = 'get',
         captureData = false,
         retries = 10,
+        username,
+        password,
+        timeout,
     }) {
+        this.timeout = timeout;
         this.retries = 10;
         this.pathname = pathname;
         this.hostname = hostname;
@@ -44,6 +49,11 @@ export default class HTTPClient {
         this.methodSignature = method.toUpperCase();
         this.captureData = captureData;
         this.rawData = [];
+
+
+        if (username) {
+            this.basicAuth(username, password);
+        }
 
         log.debug(`HTTPClient ${this.name} will send requests to ${this.hostname}${this.pathname}`);
     }
@@ -73,14 +83,12 @@ export default class HTTPClient {
         body = null,
         headers = new Map(),
         pathname,
-        timeout = 300,
+        timeout = this.timeout || 300,
         attempt = 1,
     } = {}) {
         const id = Math.round(Math.random()*100000000);
         const start = Date.now();
         const url = this.hostname + (pathname || this.pathname);
-
-        log.debug(`[${id}] Sending ${this.method.toUpperCase()} request to ${url}; query = ${JSON.stringify(query)}`);
 
         if (this.basicAuthValue) {
             headers.set('Authorization', this.basicAuthValue);
@@ -88,34 +96,38 @@ export default class HTTPClient {
 
         headers.set('Accept', this.accept);
 
-            const response = await superagent[this.method](url)
-                .query(query)
-                .buffer()
-                .timeout({ deadline: timeout * 1000, response: timeout * 1000 })
-                .set(Object.fromEntries(headers.entries()))
-                .ok((response) => {
-                    if (!this.expectedStatus.includes(response.status)) {
-                        throw new Error(`${this.method.toUpperCase()} Request to ${url} failed with the status ${response.status}, expected ${this.expectedStatus.join(', ')}!`);
-                    } else {
-                        return true;
-                    }
-                })
-                .send(body);
 
-            log.debug(`[${id}][${Date.now()-start} msec] Got a response for the ${this.method.toUpperCase()} request to ${this.hostname}${this.pathname}`);
+        log.debug(`[${id}] Sending ${this.method.toUpperCase()} request to ${url}; query = ${JSON.stringify(query)}; headers = ${[...headers.entries()].map((key, value) => `${key}: ${value}`).join(', ')}`);
 
-            if (response.body && response.body.length !== undefined) {
-                log.info(`[${id}] reponse for request to ${this.hostname}${this.pathname} contains ${response.body.length} records`);
-                log.debug(`[${id}] data for request to ${this.hostname}${this.pathname}: ${JSON.stringify(response.body).substr(0, 500)}`);
 
-                return response.body;
-            } else if (response.buffered) {
-                if (this.captureData) { 
-                    this.rawData.push(response.text);
+        const response = await superagent[this.method](url)
+            .query(query)
+            .buffer()
+            .timeout({ deadline: timeout * 1000, response: timeout * 1000 })
+            .set(Object.fromEntries(headers.entries()))
+            .ok((response) => {
+                if (!this.expectedStatus.includes(response.status)) {
+                    throw new Error(`${this.method.toUpperCase()} Request to ${url} failed with the status ${response.status}, expected ${this.expectedStatus.join(', ')}!`);
+                } else {
+                    return true;
                 }
-                const parsedData = this.parseBody(response.text);
-                return parsedData;
+            })
+            .send(body);
+
+        log.debug(`[${id}][${Date.now()-start} msec] Got a response for the ${this.method.toUpperCase()} request to ${this.hostname}${this.pathname}`);
+
+        if (response.body && response.body.length !== undefined) {
+            log.info(`[${id}] reponse for request to ${this.hostname}${this.pathname} contains ${response.body.length} records`);
+            log.debug(`[${id}] data for request to ${this.hostname}${this.pathname}: ${JSON.stringify(response.body).substr(0, 500)}`);
+
+            return response.body;
+        } else if (response.buffered) {
+            if (this.captureData) { 
+                this.rawData.push(response.text);
             }
+            const parsedData = this.parseBody(response.text);
+            return parsedData;
+        }
     }
 
 

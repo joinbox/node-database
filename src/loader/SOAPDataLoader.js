@@ -16,6 +16,8 @@ export default class SOAPDataLoader extends HTTPClient {
         pathname,
         name,
         captureData,
+        username,
+        password,
     }) {
         const accept = 'text/xml';
         log.debug(`Seting the accept header to ${accept}`);
@@ -27,8 +29,11 @@ export default class SOAPDataLoader extends HTTPClient {
             accept,
             method: 'post',
             captureData,
+            username,
+            password,
         });
     }
+
 
 
     async load() {
