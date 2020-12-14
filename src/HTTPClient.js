@@ -85,6 +85,7 @@ export default class HTTPClient {
         pathname,
         timeout = this.timeout || 300,
         attempt = 1,
+        method = this.method,
     } = {}) {
         const id = Math.round(Math.random()*100000000);
         const start = Date.now();
@@ -97,24 +98,24 @@ export default class HTTPClient {
         headers.set('Accept', this.accept);
 
 
-        log.debug(`[${id}] Sending ${this.method.toUpperCase()} request to ${url}; query = ${JSON.stringify(query)}; headers = ${[...headers.entries()].map((key, value) => `${key}: ${value}`).join(', ')}`);
+        log.debug(`[${id}] Sending ${method.toUpperCase()} request to ${url}; query = ${JSON.stringify(query)}; headers = ${[...headers.entries()].map((key, value) => `${key}: ${value}`).join(', ')}`);
 
 
-        const response = await superagent[this.method](url)
+        const response = await superagent[method](url)
             .query(query)
             .buffer()
             .timeout({ deadline: timeout * 1000, response: timeout * 1000 })
             .set(Object.fromEntries(headers.entries()))
             .ok((response) => {
                 if (!this.expectedStatus.includes(response.status)) {
-                    throw new Error(`${this.method.toUpperCase()} Request to ${url} failed with the status ${response.status}, expected ${this.expectedStatus.join(', ')}!`);
+                    throw new Error(`${method.toUpperCase()} Request to ${url} failed with the status ${response.status}, expected ${this.expectedStatus.join(', ')}!`);
                 } else {
                     return true;
                 }
             })
             .send(body);
 
-        log.debug(`[${id}][${Date.now()-start} msec] Got a response for the ${this.method.toUpperCase()} request to ${this.hostname}${this.pathname}`);
+        log.debug(`[${id}][${Date.now()-start} msec] Got a response for the ${method.toUpperCase()} request to ${this.hostname}${this.pathname}`);
 
         if (response.body && response.body.length !== undefined) {
             log.info(`[${id}] reponse for request to ${this.hostname}${this.pathname} contains ${response.body.length} records`);
