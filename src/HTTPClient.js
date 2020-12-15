@@ -98,7 +98,7 @@ export default class HTTPClient {
         headers.set('Accept', this.accept);
 
 
-        log.debug(`[${id}] Sending ${method.toUpperCase()} request to ${url}; query = ${JSON.stringify(query)}; headers = ${[...headers.entries()].map((key, value) => `${key}: ${value}`).join(', ')}`);
+        log.debug(`[${id}] Sending ${method.toUpperCase()} request to ${url}; query = ${JSON.stringify(query)}; headers = ${[...headers.entries()].map(([key, value]) => `${key}: ${value}`).join(', ')}`);
 
 
         const response = await superagent[method](url)
