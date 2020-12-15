@@ -37,7 +37,9 @@ export default class HTTPClient {
         username,
         password,
         timeout,
+        headers,
     }) {
+        this.headers = headers ? new Map(Object.entries(headers)) : new Map();
         this.timeout = timeout;
         this.retries = 10;
         this.pathname = pathname;
@@ -81,15 +83,27 @@ export default class HTTPClient {
     async request({
         query = {},
         body = null,
-        headers = new Map(),
-        pathname,
+        headers,
+        pathname = this.pathname,
         timeout = this.timeout || 300,
-        attempt = 1,
         method = this.method,
     } = {}) {
         const id = Math.round(Math.random()*100000000);
         const start = Date.now();
-        const url = this.hostname + (pathname || this.pathname);
+        const url = this.hostname + pathname;
+
+        if (!headers) headers = new Map();
+        if (!(headers instanceof Map)) {
+            if (Array.isArray(headers)) {
+                headers = new Map(headers);
+            } else if (typeof headers === 'object') {
+                headers = new Map(Object.entries(headers));
+            }
+        }
+
+        for (const [key, value] of this.headers.entries()) {
+            headers.set(key, value);
+        }
 
         if (this.basicAuthValue) {
             headers.set('Authorization', this.basicAuthValue);
