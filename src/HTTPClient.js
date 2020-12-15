@@ -122,6 +122,7 @@ export default class HTTPClient {
             .set(Object.fromEntries(headers.entries()))
             .ok((response) => {
                 if (!this.expectedStatus.includes(response.status)) {
+                    log.debug(response);
                     throw new Error(`${method.toUpperCase()} Request to ${url} failed with the status ${response.status}, expected ${this.expectedStatus.join(', ')}!`);
                 } else {
                     return true;
