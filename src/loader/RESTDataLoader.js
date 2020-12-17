@@ -34,6 +34,7 @@ export default class RESTDataLoader extends HTTPClient {
         log.info(`Loading data ...`);
         const data = this.request();
         log.info(`Data loaded!`);
+        log.debug(data);
         return data;
     }
 }
