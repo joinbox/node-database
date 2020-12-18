@@ -32,7 +32,7 @@ export default class RESTDataLoader extends HTTPClient {
 
     async load() {
         log.info(`Loading data ...`);
-        const data = this.request();
+        const data = await this.request();
         log.info(`Data loaded!`);
         log.info(data);
         return data;
