@@ -430,19 +430,18 @@ export default class Collection {
                         log.debug(`${this.getLogPrefix()} filtered item: ${propertyName} with the value ${data[propertyName]} does not suffice filter ${comparator} with the value ${value}`)
                         return false;
                     }
-                    return true;
+                    break;
 
                 case 'equalsSome':
                     if (!Array.isArray(value)) {
                         throw new Error(`${this.getLogPrefix()} expected an array of values for the filter of the propertyName ${propertyName}!`);
                     } else {
-                        if (value.some(itemValue => data[propertyName] === itemValue)) {
-                            return true;
-                        } else {
+                        if (!value.some(itemValue => data[propertyName] === itemValue)) {
                             log.debug(`${this.getLogPrefix()} filtered item: ${propertyName} with the value ${data[propertyName]} does not suffice filter ${comparator} with the values ${value.join(', ')}`)
                             return false;
                         }
                     }
+                    break;
 
                 default: 
                     throw new Error(`[${this.getName()}] cannot filter data, the comparator ${comparator} is not known!`);
