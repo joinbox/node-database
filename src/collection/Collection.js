@@ -432,6 +432,13 @@ export default class Collection {
                     }
                     break;
 
+                case 'notEquals':
+                    if (data[propertyName] === value)  {
+                        log.debug(`${this.getLogPrefix()} filtered item: ${propertyName} with the value ${data[propertyName]} does not suffice filter ${comparator} with the value ${value}`)
+                        return false;
+                    }
+                    break;
+
                 case 'equalsSome':
                     if (!Array.isArray(value)) {
                         throw new Error(`${this.getLogPrefix()} expected an array of values for the filter of the propertyName ${propertyName}!`);
