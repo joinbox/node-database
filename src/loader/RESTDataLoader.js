@@ -15,6 +15,7 @@ export default class RESTDataLoader extends HTTPClient {
         name,
         username,
         password,
+        timeout,
     }) {
         const accept = 'application/json';
         log.debug(`Setting the accept header to ${accept}`);
@@ -26,6 +27,7 @@ export default class RESTDataLoader extends HTTPClient {
             accept,
             username,
             password,
+            timeout,
         });
     }
 

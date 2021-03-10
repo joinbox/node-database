@@ -85,7 +85,7 @@ export default class HTTPClient {
         body = null,
         headers,
         pathname = this.pathname,
-        timeout = this.timeout || 300,
+        timeout = this.timeout || 600,
         method = this.method,
     } = {}) {
         const id = Math.round(Math.random()*100000000);
